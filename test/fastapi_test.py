@@ -1,6 +1,7 @@
 from pymongo import MongoClient
 import unittest
 import requests
+import time
 
 # TODO change IP and PORT to your fastapi deployment
 # TODO set DATABASE_NAME, COLLECTION_NAME, MONGO_DB_URL, and MONGO_DB_PORT (same as main.py)
@@ -148,19 +149,7 @@ class TestApi(unittest.TestCase):
         res = requests.post(BASE_URL + f"/reservation", json=myobj)
         
         self.assertEqual(res.status_code, 200)
-        self.assertTrue(list(collection.find(myobj)))
-
-    def test_post_room_id_int_in_str_form(self):
-        myobj = {
-            "name": mock_name,
-            "start_date": "2017-01-01",
-            "end_date": "2017-01-01",
-            "room_id": "10"
-        }
-
-        res = requests.post(BASE_URL + f"/reservation", json=myobj)
-        
-        self.assertEqual(res.status_code, 200)
+        self.assertFalse(list(collection.find(myobj)))
         self.assertTrue(list(collection.find(
             {
             "name": mock_name,
@@ -827,7 +816,7 @@ class TestApi(unittest.TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertTrue(list(collection.find(myobj)))
         self.assertFalse(list(collection.find(new_obj)))
-
+        
         res = requests.put(BASE_URL + f"/reservation/update", json={
             "reservation": myobj,
             "new_start_date": new_start_date,

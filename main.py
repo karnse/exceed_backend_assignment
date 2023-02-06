@@ -24,7 +24,6 @@ collection = db[COLLECTION_NAME]
 
 app = FastAPI()
 
-
 def room_avaliable(room_id: int, start_date: str, end_date: str):
     query={"room_id": room_id,
            "$or": 
@@ -41,20 +40,44 @@ def room_avaliable(room_id: int, start_date: str, end_date: str):
 
 @app.get("/reservation/by-name/{name}")
 def get_reservation_by_name(name:str):
-    pass
+    result=[]
+    for i in collection.find({"name":name},{"_id":0}):
+        result.append(i)
+    return {"result":result}
 
 @app.get("/reservation/by-room/{room_id}")
 def get_reservation_by_room(room_id: int):
-    pass
+    result=[]
+    for i in collection.find({"room_id":room_id},{"_id":0}):
+        result.append(i)
+    return {"result":result}
 
 @app.post("/reservation")
 def reserve(reservation : Reservation):
-    pass
+    reservation.start_date=reservation.start_date.isoformat()
+    reservation.end_date=reservation.end_date.isoformat()
+    if (reservation.start_date > reservation.end_date) or reservation.room_id<1 or reservation.room_id>10:
+        raise HTTPException(status_code=400)
+    if room_avaliable(reservation.room_id,str(reservation.start_date),str(reservation.end_date)):
+        collection.insert_one({"name":reservation.name,"start_date":str(reservation.start_date),"end_date":str(reservation.end_date),"room_id":reservation.room_id})
+    else:
+        raise HTTPException(status_code=400)
+    return
 
 @app.put("/reservation/update")
 def update_reservation(reservation: Reservation, new_start_date: date = Body(), new_end_date: date = Body()):
-    pass
-
+    print(type(reservation.start_date))
+    new_start_date=new_start_date.isoformat()
+    new_end_date=new_end_date.isoformat()
+    if(new_end_date<new_start_date) or reservation.room_id>10 or reservation.room_id<1:
+        raise HTTPException(status_code=400)
+    elif(room_avaliable(reservation.room_id,str(new_start_date),str(new_end_date))):
+        collection.update_many({"name":reservation.name,"start_date":str(reservation.start_date),"end_date":str(reservation.end_date),"room_id":reservation.room_id},{"$set": {"name":reservation.name,"start_date":str(new_start_date),"end_date":str(new_end_date),"room_id":reservation.room_id}})
+    else:
+        raise HTTPException(status_code=400)
+    return
 @app.delete("/reservation/delete")
 def cancel_reservation(reservation: Reservation):
-    pass
+    reservation.start_date=reservation.start_date.isoformat()
+    reservation.end_date=reservation.end_date.isoformat()
+    collection.delete_many({"name":reservation.name,"start_date":str(reservation.start_date),"end_date":str(reservation.end_date),"room_id":reservation.room_id})
